@@ -26,6 +26,8 @@ spl-associated-token-account = "=2.3.0"
 tokio = { version = "1.0", features = ["full"] }
 anyhow = "1.0"
 solana-client = "=1.18.26"
+env_logger = "0.10"
+trading-program-client = { path = "../1024-core/crates/trading-program-client" }
 
 [profile.release]
 opt-level = 3
@@ -42,4 +44,12 @@ no-entrypoint = []
 [[example]]
 name = "initialize_vault"
 path = "client-examples/initialize_vault.rs"
+
+[[example]]
+name = "e2e_test"
+path = "examples/e2e_test.rs"
+
+[[example]]
+name = "benchmark"
+path = "examples/benchmark.rs"
 

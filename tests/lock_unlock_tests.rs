@@ -120,17 +120,138 @@ fn test_is_liquidatable() {
     println!("✅ 强平判断逻辑正确");
 }
 
-// 集成测试（需要solana-program-test环境）
-#[cfg(feature = "integration-tests")]
+// 集成测试（使用solana-program-test）
+#[cfg(test)]
 mod integration_tests {
     use super::*;
+    use borsh::BorshSerialize;
+    use solana_program::{pubkey::Pubkey, system_program};
     use solana_program_test::*;
-    use solana_sdk::{signature::Signer, transaction::Transaction};
+    use solana_sdk::{
+        signature::{Keypair, Signer},
+        transaction::Transaction,
+    };
+    use trading_program::{
+        instruction::TradingInstruction,
+        state::{Side, MarginMode, TradingVault, UserPosition},
+        processor,
+    };
+    use spl_token;
+    
+    /// 辅助函数：创建测试环境
+    async fn setup_test_env() -> (
+        BanksClient,
+        Keypair,
+        solana_program::hash::Hash,
+        Pubkey,
+        Keypair,
+        Pubkey,
+        Pubkey,
+    ) {
+        let program_id = Pubkey::new_unique();
+        let mut program_test = ProgramTest::new(
+            "trading_program",
+            program_id,
+            processor!(processor::process_instruction),
+        );
+        
+        // 添加SPL Token program
+        program_test.add_program(
+            "spl_token",
+            spl_token::id(),
+            None,
+        );
+        
+        let (banks_client, payer, recent_blockhash) = program_test.start().await;
+        
+        // 创建USDC mint和账户
+        let usdc_mint = Pubkey::new_unique();
+        let vault_usdc = Pubkey::new_unique();
+        let user_wallet = Keypair::new();
+        let user_usdc = Pubkey::new_unique();
+        
+        (banks_client, payer, recent_blockhash, program_id, user_wallet, vault_usdc, user_usdc)
+    }
     
     #[tokio::test]
-    async fn test_lock_margin_basic() {
-        // TODO: 实现完整的集成测试
-        // 需要设置Solana Program Test环境
+    #[ignore] // 需要真实环境或完整的SPL Token setup
+    async fn test_initialize_vault() {
+        let (mut banks_client, payer, recent_blockhash, program_id, _, vault_usdc, _) = setup_test_env().await;
+        
+        // 派生Trading Vault PDA
+        let (vault_pda, _bump) = Pubkey::find_program_address(
+            &[b"trading_vault"],
+            &program_id,
+        );
+        
+        // 创建InitializeVault instruction
+        let instruction_data = TradingInstruction::InitializeVault;
+        let serialized = instruction_data.try_to_vec().unwrap();
+        
+        let instruction = solana_program::instruction::Instruction {
+            program_id,
+            accounts: vec![
+                solana_program::instruction::AccountMeta::new(vault_pda, false),
+                solana_program::instruction::AccountMeta::new(vault_usdc, false),
+                solana_program::instruction::AccountMeta::new(payer.pubkey(), true),
+                solana_program::instruction::AccountMeta::new_readonly(system_program::id(), false),
+                solana_program::instruction::AccountMeta::new_readonly(spl_token::id(), false),
+                solana_program::instruction::AccountMeta::new_readonly(
+                    solana_program::sysvar::rent::id(),
+                    false
+                ),
+            ],
+            data: serialized,
+        };
+        
+        let mut transaction = Transaction::new_with_payer(
+            &[instruction],
+            Some(&payer.pubkey()),
+        );
+        transaction.sign(&[&payer], recent_blockhash);
+        
+        // 注意：这个测试需要完整的Token Account设置
+        // 在实际部署环境中测试
+        println!("✅ Initialize vault test prepared (需要真实环境验证)");
+    }
+    
+    #[tokio::test]
+    async fn test_lock_margin_calculation() {
+        // 测试保证金计算的准确性
+        let size_e6 = 1_000_000; // 0.001 BTC
+        let price_e6 = 101_885_000_000; // $101,885
+        let leverage = 20;
+        
+        let im = calculate_initial_margin(size_e6, price_e6, leverage).unwrap();
+        
+        // 验证：IM = (size × price) / leverage
+        assert_eq!(im, 5_094_250_000); // $5.09425
+        
+        println!("✅ Lock margin calculation test passed");
+    }
+    
+    #[tokio::test]
+    async fn test_unlock_margin_pnl_calculation() {
+        // 测试平仓盈亏计算
+        
+        // Long盈利
+        let entry = 101_885_000_000;
+        let exit = 103_000_000_000;
+        let size = 1_000_000;
+        
+        let pnl = calculate_realized_pnl(true, entry, exit, size).unwrap();
+        assert_eq!(pnl, 1_115_000_000); // $1.115
+        
+        // Long亏损
+        let exit_loss = 100_000_000_000;
+        let pnl_loss = calculate_realized_pnl(true, entry, exit_loss, size).unwrap();
+        assert_eq!(pnl_loss, -1_885_000_000); // -$1.885
+        
+        // Short盈利
+        let pnl_short = calculate_realized_pnl(false, entry, exit_loss, size).unwrap();
+        assert_eq!(pnl_short, 1_885_000_000); // $1.885
+        
+        println!("✅ Unlock margin PnL calculation test passed");
     }
 }
 
