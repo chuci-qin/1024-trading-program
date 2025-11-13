@@ -1,0 +1,39 @@
+[package]
+name = "trading-program"
+version = "2.0.0"
+edition = "2021"
+description = "1024EX Trading Program - On-chain USDC margin custody for perpetual futures"
+license = "MIT"
+repository = "https://github.com/chuciqin/1024-trading-program"
+authors = ["Chuci Qin <xavierqinn@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+solana-program = "=1.18.26"
+borsh = "0.10"
+thiserror = "1.0"
+sha2 = "0.10"
+spl-token = { version = "=4.0.0", features = ["no-entrypoint"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+solana-program-test = "=1.18.26"
+solana-sdk = "=1.18.26"
+spl-associated-token-account = "=2.3.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+overflow-checks = true
+
+[profile.release.build-override]
+opt-level = 3
+
+[features]
+no-entrypoint = []
+
