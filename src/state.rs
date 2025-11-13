@@ -19,24 +19,6 @@ pub enum MarginMode {
     Isolated,   // 逐仓
 }
 
-/// Smart Hedge模式
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HedgeMode {
-    Conservative,   // 保守（30%平仓）
-    Balanced,       // 平衡（40%平仓）
-    Aggressive,     // 激进（50%平仓）
-}
-
-/// 保护池状态
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PoolStatus {
-    Active,      // 激活，等待反向建仓
-    Reentered,   // 已反向建仓
-    Completed,   // 止盈/止损完成
-    Expired,     // 24小时超时
-    Cancelled,   // 用户取消
-}
-
 /// 清算状态
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LiquidationStatus {
@@ -178,16 +160,8 @@ pub struct UserPosition {
     pub opened_at: i64,                 // 开仓时间（秒）
     pub updated_at: i64,                // 更新时间（秒）
     
-    // === 止盈止损（可选） ===
-    pub take_profit_price_e6: Option<i64>,
-    pub stop_loss_price_e6: Option<i64>,
-    
-    // === Smart Hedge配置 ===
-    pub smart_hedge_enabled: bool,
-    pub hedge_mode: Option<HedgeMode>,
-    
     // === 预留扩展字段 ===
-    pub reserved: [u8; 64],
+    pub reserved: [u8; 96],  // 增加预留空间（移除了TP/SL和Smart Hedge字段）
 }
 
 impl UserPosition {
@@ -245,11 +219,7 @@ impl UserPosition {
             liquidation_status: LiquidationStatus::Normal,
             opened_at: now,
             updated_at: now,
-            take_profit_price_e6: None,
-            stop_loss_price_e6: None,
-            smart_hedge_enabled: false,
-            hedge_mode: None,
-            reserved: [0; 64],
+            reserved: [0; 96],
         }
     }
     
@@ -327,124 +297,7 @@ impl UserPosition {
     }
 }
 
-/// Protection Pool（Smart Hedge保护池）
-/// PDA Seeds: [b"protection_pool", user.key().as_ref(), account_id.as_bytes(), market.as_bytes(), timestamp.to_le_bytes()]
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
-pub struct ProtectionPool {
-    /// 账户类型标识符 "PROTPOOL" = 0x50524f54_504f4f4c
-    pub discriminator: u64,
-    
-    /// 数据版本
-    pub version: u8,
-    
-    /// PDA bump seed
-    pub bump: u8,
-    
-    /// 预留字段（对齐）
-    pub reserved_align: [u8; 6],
-    
-    // === 用户标识 ===
-    pub wallet: Pubkey,
-    pub account_id: String,
-    pub market: String,
-    
-    // === 保护资金 ===
-    pub protected_funds_e6: i64,        // 保护资金金额
-    
-    // === 原始持仓信息 ===
-    pub original_size_e6: i64,
-    pub original_entry_price_e6: i64,
-    pub close_price_e6: i64,
-    pub close_time: i64,
-    
-    // === 反向建仓配置 ===
-    pub reentry_enabled: bool,
-    pub reentry_price_drop: u32,        // 价格跌幅（bp，500=5%）
-    pub reentry_leverage: u32,          // 反向建仓杠杆
-    pub tp_ratio: u32,                  // 止盈比例（bp，500=5%）
-    pub sl_ratio: u32,                  // 止损比例（bp，300=3%）
-    
-    // === 反向建仓状态 ===
-    pub reentry_triggered: bool,
-    pub reentry_price_e6: Option<i64>,
-    pub reentry_size_e6: Option<i64>,
-    pub reentry_triggered_at: Option<i64>,
-    
-    // === 止盈止损状态 ===
-    pub tp_triggered: bool,
-    pub sl_triggered: bool,
-    pub exit_price_e6: Option<i64>,
-    pub final_pnl_e6: Option<i64>,
-    
-    // === 状态 ===
-    pub status: PoolStatus,
-    pub created_at: i64,
-    pub updated_at: i64,
-    
-    /// 预留扩展字段
-    pub reserved: [u8; 32],
-}
-
-impl ProtectionPool {
-    pub const DISCRIMINATOR: u64 = 0x50524f54_504f4f4c;
-    pub const VERSION: u8 = 1;
-    
-    /// ~400 bytes
-    pub const MAX_SIZE: usize = 450;
-    
-    pub fn new(
-        wallet: Pubkey,
-        account_id: String,
-        market: String,
-        protected_funds_e6: i64,
-        original_size_e6: i64,
-        original_entry_price_e6: i64,
-        close_price_e6: i64,
-        hedge_mode: HedgeMode,
-        bump: u8,
-    ) -> Self {
-        let now = solana_program::clock::Clock::get()
-            .map(|clock| clock.unix_timestamp)
-            .unwrap_or(0);
-        
-        // 根据模式设置参数
-        let (price_drop, leverage, tp, sl) = match hedge_mode {
-            HedgeMode::Conservative => (500, 10, 500, 300),   // 5%跌, 10x, 5%止盈, 3%止损
-            HedgeMode::Balanced => (500, 10, 500, 300),
-            HedgeMode::Aggressive => (500, 10, 500, 300),
-        };
-        
-        Self {
-            discriminator: Self::DISCRIMINATOR,
-            version: Self::VERSION,
-            bump,
-            reserved_align: [0; 6],
-            wallet,
-            account_id,
-            market,
-            protected_funds_e6,
-            original_size_e6,
-            original_entry_price_e6,
-            close_price_e6,
-            close_time: now,
-            reentry_enabled: true,
-            reentry_price_drop: price_drop,
-            reentry_leverage: leverage,
-            tp_ratio: tp,
-            sl_ratio: sl,
-            reentry_triggered: false,
-            reentry_price_e6: None,
-            reentry_size_e6: None,
-            reentry_triggered_at: None,
-            tp_triggered: false,
-            sl_triggered: false,
-            exit_price_e6: None,
-            final_pnl_e6: None,
-            status: PoolStatus::Active,
-            created_at: now,
-            updated_at: now,
-            reserved: [0; 32],
-        }
-    }
-}
+// === ProtectionPool已移除 ===
+// Smart Hedge功能应该在1024-core/smart-hedge-engine中实现
+// trading-program只负责USDC的存入和取出！
 

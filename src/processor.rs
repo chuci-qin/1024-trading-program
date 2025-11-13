@@ -88,58 +88,6 @@ pub fn process_instruction(
                 liquidation_price_e6,
             )
         }
-        TradingInstruction::PartialCloseForHedge {
-            account_id,
-            market,
-            close_ratio,
-            exit_price_e6,
-            hedge_mode,
-        } => {
-            msg!("Instruction: PartialCloseForHedge");
-            process_partial_close_for_hedge(
-                program_id,
-                accounts,
-                account_id,
-                market,
-                close_ratio,
-                exit_price_e6,
-                hedge_mode,
-            )
-        }
-        TradingInstruction::CreateReentryPosition {
-            account_id,
-            market,
-            entry_price_e6,
-            pool_created_at,
-        } => {
-            msg!("Instruction: CreateReentryPosition");
-            process_create_reentry_position(
-                program_id,
-                accounts,
-                account_id,
-                market,
-                entry_price_e6,
-                pool_created_at,
-            )
-        }
-        TradingInstruction::ExecuteTpSl {
-            account_id,
-            market,
-            exit_price_e6,
-            is_take_profit,
-            pool_created_at,
-        } => {
-            msg!("Instruction: ExecuteTpSl");
-            process_execute_tpsl(
-                program_id,
-                accounts,
-                account_id,
-                market,
-                exit_price_e6,
-                is_take_profit,
-                pool_created_at,
-            )
-        }
         TradingInstruction::UpdatePosition {
             account_id,
             market,
@@ -818,50 +766,6 @@ fn process_liquidate(
     msg!("  Liquidation fee: {} USDC", liquidation_fee as f64 / 1_000_000.0);
     msg!("  Loss: {} USDC", (locked_usdc - equity) as f64 / 1_000_000.0);
     
-    Ok(())
-}
-
-/// Smart Hedge部分平仓
-fn process_partial_close_for_hedge(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
-    _account_id: String,
-    _market: String,
-    _close_ratio: u32,
-    _exit_price_e6: i64,
-    _hedge_mode: crate::state::HedgeMode,
-) -> ProgramResult {
-    // TODO: 实现Smart Hedge逻辑
-    msg!("PartialCloseForHedge - To be implemented");
-    Ok(())
-}
-
-/// 创建反向建仓
-fn process_create_reentry_position(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
-    _account_id: String,
-    _market: String,
-    _entry_price_e6: i64,
-    _pool_created_at: i64,
-) -> ProgramResult {
-    // TODO: 实现反向建仓逻辑
-    msg!("CreateReentryPosition - To be implemented");
-    Ok(())
-}
-
-/// 执行止盈止损
-fn process_execute_tpsl(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
-    _account_id: String,
-    _market: String,
-    _exit_price_e6: i64,
-    _is_take_profit: bool,
-    _pool_created_at: i64,
-) -> ProgramResult {
-    // TODO: 实现止盈止损逻辑
-    msg!("ExecuteTpSl - To be implemented");
     Ok(())
 }
 

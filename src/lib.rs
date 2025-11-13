@@ -26,9 +26,10 @@ pub mod processor;
 pub mod state;
 pub mod utils;
 
-// Trading Program ID (待部署到1024Chain Testnet)
-// 临时使用默认ID,部署后会更新
-solana_program::declare_id!("TradingProgram11111111111111111111111111111");
+// Trading Program ID (已部署到1024Chain Testnet)
+// 部署日期: 2025-11-13
+// Transaction: 3yhgKi33Vm5RUkXJoqggJ9ewp42j3ZsJhWodYyUfvckLvH2pg4SzwTruWaXc4PCDsDosTgpdsiy9pmq1mnePZuJS
+solana_program::declare_id!("E3ea5jEUvTojcKiJWayNVTJ16gU52zkfLJArgudAUCFw");
 
 // Program入口点
 #[cfg(not(feature = "no-entrypoint"))]
@@ -46,7 +47,6 @@ pub fn process_instruction(
 pub use error::TradingError;
 pub use instruction::TradingInstruction;
 pub use state::{
-    TradingVault, UserPosition, ProtectionPool, Side, MarginMode,
-    PoolStatus, HedgeMode, LiquidationStatus,
+    TradingVault, UserPosition, Side, MarginMode, LiquidationStatus,
 };
 

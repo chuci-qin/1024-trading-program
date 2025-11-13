@@ -81,18 +81,6 @@ fn test_calculate_realized_pnl_short_profit() {
 }
 
 #[test]
-fn test_calculate_hedge_fee() {
-    // 测试Smart Hedge费用计算 (0.1%)
-    
-    let return_amount = 36_000_000; // $36
-    let fee = calculate_hedge_fee(return_amount);
-    
-    // Fee = 36 × 0.1% = $0.036
-    assert_eq!(fee, 36_000); // $0.036 (e6)
-    println!("✅ Smart Hedge费用计算正确: {} USDC", fee as f64 / 1_000_000.0);
-}
-
-#[test]
 fn test_calculate_liquidation_fee() {
     // 测试清算手续费计算 (0.5%)
     
@@ -116,19 +104,6 @@ fn test_validate_leverage() {
     assert!(validate_leverage(101).is_err()); // >100x不合法
     
     println!("✅ 杠杆验证逻辑正确");
-}
-
-#[test]
-fn test_should_trigger_smart_hedge() {
-    // 测试Smart Hedge触发判断
-    
-    assert!(!should_trigger_smart_hedge(15000)); // 150% - Normal
-    assert!(!should_trigger_smart_hedge(12000)); // 120% - Warning
-    assert!(should_trigger_smart_hedge(11000)); // 110% - Smart Hedge ✅
-    assert!(should_trigger_smart_hedge(10000)); // 100% - Smart Hedge ✅
-    assert!(!should_trigger_smart_hedge(9000)); // 90% - Liquidatable
-    
-    println!("✅ Smart Hedge触发判断逻辑正确");
 }
 
 #[test]

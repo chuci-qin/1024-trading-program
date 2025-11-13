@@ -24,6 +24,8 @@ solana-program-test = "=1.18.26"
 solana-sdk = "=1.18.26"
 spl-associated-token-account = "=2.3.0"
 tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+solana-client = "=1.18.26"
 
 [profile.release]
 opt-level = 3
@@ -36,4 +38,8 @@ opt-level = 3
 
 [features]
 no-entrypoint = []
+
+[[example]]
+name = "initialize_vault"
+path = "client-examples/initialize_vault.rs"
 

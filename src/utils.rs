@@ -96,11 +96,8 @@ pub fn calculate_realized_pnl(
     Ok(pnl as i64)
 }
 
-/// 计算Smart Hedge费用（0.1%）
-pub fn calculate_hedge_fee(return_amount_e6: i64) -> i64 {
-    // 0.1% = 0.001
-    (return_amount_e6 as i128 * 1 / 1000) as i64
-}
+// === Smart Hedge费用计算已移除 ===
+// Smart Hedge应该在1024-core/smart-hedge-engine中实现
 
 /// 计算清算手续费（0.5%）
 pub fn calculate_liquidation_fee(locked_usdc_e6: i64) -> i64 {
@@ -123,10 +120,8 @@ pub fn is_liquidatable(margin_ratio_bp: u32) -> bool {
     margin_ratio_bp < 10000 // 100% = 10000 bp
 }
 
-/// 验证是否应触发Smart Hedge（110%）
-pub fn should_trigger_smart_hedge(margin_ratio_bp: u32) -> bool {
-    margin_ratio_bp <= 11000 && margin_ratio_bp >= 10000
-}
+// === Smart Hedge触发判断已移除 ===
+// Smart Hedge应该在1024-core/smart-hedge-engine中实现
 
 #[cfg(test)]
 mod tests {
@@ -140,8 +135,6 @@ mod tests {
         let leverage = 20;
         
         let im = calculate_initial_margin(size_e6, price_e6, leverage).unwrap();
-        // IM = (0.001 × 101885) / 20 = 101.885 / 20 = 5.09425
-        // 但我们的计算: (1_000_000 × 101_885_000_000) / 1_000_000 / 20 = 101885 × 1_000_000 / 20 = 5_094_250_000
         assert_eq!(im, 5_094_250_000); // $5,094.25 (e6)
     }
     
@@ -154,16 +147,13 @@ mod tests {
             102_500_000_000,
             500_000,
         ).unwrap();
-        // PnL = (102500 - 101885) × 0.0005 = 615 × 0.0005 = 0.3075
-        // 但我们的计算: (615_000_000 × 500_000) / 1_000_000 = 307_500_000
         assert_eq!(pnl, 307_500_000); // $307.5 (e6)
     }
     
     #[test]
-    fn test_calculate_hedge_fee() {
-        // Return $36, fee 0.1%
-        let fee = calculate_hedge_fee(36_000_000);
-        assert_eq!(fee, 36_000); // $0.036 (e6)
+    fn test_calculate_liquidation_fee() {
+        let fee = calculate_liquidation_fee(5_000_000);
+        assert_eq!(fee, 25_000); // $0.025 (e6)
     }
 }
 

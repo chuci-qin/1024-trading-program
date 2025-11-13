@@ -1,7 +1,7 @@
 //! Trading Program Instructions
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use crate::state::{Side, MarginMode, HedgeMode};
+use crate::state::{Side, MarginMode};
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum TradingInstruction {
@@ -69,60 +69,6 @@ pub enum TradingInstruction {
         account_id: String,
         market: String,
         liquidation_price_e6: i64,  // 强平价格
-    },
-    
-    /// Smart Hedge - 部分平仓
-    /// 
-    /// Accounts:
-    /// 0. `[writable]` User Position PDA
-    /// 1. `[writable]` Protection Pool PDA - 将被创建
-    /// 2. `[signer]` User
-    /// 3. `[writable]` User USDC Account
-    /// 4. `[writable]` Vault USDC Account
-    /// 5. `[writable]` Insurance Fund Account - 收取Smart Hedge费用
-    /// 6. `[writable]` Trading Vault
-    /// 7. `[]` Token Program
-    /// 8. `[]` System Program
-    PartialCloseForHedge {
-        account_id: String,
-        market: String,
-        close_ratio: u32,           // 平仓比例（bp，4000=40%）
-        exit_price_e6: i64,
-        hedge_mode: HedgeMode,
-    },
-    
-    /// 创建反向建仓（Reentry）
-    /// 
-    /// Accounts:
-    /// 0. `[writable]` Protection Pool PDA
-    /// 1. `[writable]` New User Position PDA - 反向持仓
-    /// 2. `[signer]` User
-    /// 3. `[writable]` Trading Vault
-    /// 4. `[]` System Program
-    CreateReentryPosition {
-        account_id: String,
-        market: String,
-        entry_price_e6: i64,
-        pool_created_at: i64,       // Protection Pool的时间戳（用于PDA推导）
-    },
-    
-    /// 执行止盈/止损
-    /// 
-    /// Accounts:
-    /// 0. `[writable]` User Position PDA - 反向建仓的持仓
-    /// 1. `[writable]` Protection Pool PDA
-    /// 2. `[signer]` User
-    /// 3. `[writable]` User USDC Account
-    /// 4. `[writable]` Vault USDC Account
-    /// 5. `[writable]` Insurance Fund Account - 分成5%
-    /// 6. `[writable]` Trading Vault
-    /// 7. `[]` Token Program
-    ExecuteTpSl {
-        account_id: String,
-        market: String,
-        exit_price_e6: i64,
-        is_take_profit: bool,       // true=止盈, false=止损
-        pool_created_at: i64,
     },
     
     /// 更新持仓标记价格和未实现盈亏（链下定期调用）
