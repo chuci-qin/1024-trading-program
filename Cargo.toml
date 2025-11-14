@@ -11,7 +11,7 @@ authors = ["Chuci Qin <xavierqinn@gmail.com>"]
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-solana-program = "=1.18.26"
+solana-program = "=1.18.26"  # 保持已部署版本
 borsh = "0.10"
 thiserror = "1.0"
 sha2 = "0.10"
@@ -25,7 +25,7 @@ solana-sdk = "=1.18.26"
 spl-associated-token-account = "=2.3.0"
 tokio = { version = "1.0", features = ["full"] }
 anyhow = "1.0"
-solana-client = "=1.18.26"
+solana-client = "~3.0"
 env_logger = "0.10"
 trading-program-client = { path = "../1024-core/crates/trading-program-client" }
 
